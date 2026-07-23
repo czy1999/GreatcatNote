@@ -1,155 +1,79 @@
-![Latest stable](https://img.shields.io/github/v/release/refactoringhq/tolaria?display_name=tag) [![CI](https://github.com/refactoringhq/tolaria/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/refactoringhq/tolaria/actions/workflows/ci.yml) [![Codecov](https://codecov.io/gh/refactoringhq/tolaria/graph/badge.svg?branch=main)](https://codecov.io/gh/refactoringhq/tolaria) [![CodeScene Hotspot Code Health](https://codescene.io/projects/76865/status-badges/hotspot-code-health)](https://codescene.io/projects/76865)
+# GreatcatNote
 
-# 💧 Tolaria
+GreatcatNote is a personal fork of [Tolaria](https://github.com/refactoringhq/tolaria), a files-first desktop knowledge-base app built with Tauri, React, and TypeScript.
 
-Tolaria is a desktop app for macOS, Windows, and Linux for managing **markdown knowledge bases**. People use it for a variety of use cases:
+This fork keeps Tolaria's core idea: notes stay as ordinary files, Git stays available, and the app should remain offline-first. The reason for the fork is simple: I want one local knowledge app that can treat Markdown, HTML, and Excalidraw drawings as first-class knowledge artifacts.
 
-* Operate second brains and personal knowledge
-* Organize company docs as context for AI
-* Store OpenClaw/assistants memory and procedures
+## Why this fork exists
 
-Personally, I use it to **run my life** (hey 👋 [Luca here](http://x.com/lucaronin)). I have a massive workspace of 10,000+ notes, which are the result of my [Refactoring](https://refactoring.fm/) work + a ton of personal journaling and *second braining*.
+Tolaria is already a strong base for a Markdown knowledge base. GreatcatNote adds a smaller, personal-product layer on top:
 
-<img width="1000" height="656" alt="1776506856823-CleanShot_2026-04-18_at_12 06 57_2x" src="https://github.com/user-attachments/assets/8aeafb0a-b236-43c2-a083-ec111f903c38" />
+- Native app name, bundle id, and deep link scheme changed to `GreatcatNote`, `com.greatcat.note`, and `greatcatnote://`.
+- `.html` files can be opened and viewed inside the app.
+- `.excalidraw` and `.excalidraw.json` files can be opened from the vault instead of appearing unavailable.
+- Excalidraw editing is embedded with the official `@excalidraw/excalidraw` React package.
+- Excalidraw's bundled fonts are shipped locally so drawings keep the handwritten style offline.
+- The note list includes a direct New Drawing action that creates a valid `.excalidraw` file.
+- Drawing edits warn before leaving the file or closing the window when unsaved.
 
-## Sponsors
-
-Tolaria is supported by a small panel of tools that help keep the project healthy, tested, and ready for AI-assisted development. I use these tools every day.
-
-<table>
-  <tr>
-    <td align="center" width="25%">
-      <a href="https://www.codacy.com/?utm_source=tolaria&utm_medium=github&utm_campaign=refactoring">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/refactoringhq/tolaria/main/site/public/landing/sponsors/codacy-light.svg">
-          <img src="https://raw.githubusercontent.com/refactoringhq/tolaria/main/site/public/landing/sponsors/codacy-dark.svg" alt="Codacy" height="32">
-        </picture>
-      </a>
-    </td>
-    <td align="center" width="25%">
-      <a href="https://codescene.com/?utm_source=tolaria&utm_medium=github&utm_campaign=refactoring">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/refactoringhq/tolaria/main/site/public/landing/sponsors/codescene-light.svg">
-          <img src="https://raw.githubusercontent.com/refactoringhq/tolaria/main/site/public/landing/sponsors/codescene-dark.svg" alt="CodeScene" height="32">
-        </picture>
-      </a>
-    </td>
-    <td align="center" width="25%">
-      <a href="https://circleci.com/?utm_source=tolaria&utm_medium=github&utm_campaign=refactoring">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/refactoringhq/tolaria/main/site/public/landing/sponsors/circleci-light.svg">
-          <img src="https://raw.githubusercontent.com/refactoringhq/tolaria/main/site/public/landing/sponsors/circleci-dark.svg" alt="CircleCI" height="32">
-        </picture>
-      </a>
-    </td>
-    <td align="center" width="25%">
-      <a href="https://getunblocked.com/?utm_source=tolaria&utm_medium=github&utm_campaign=refactoring">
-        <picture>
-          <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/refactoringhq/tolaria/main/site/public/landing/sponsors/unblocked-light.svg">
-          <img src="https://raw.githubusercontent.com/refactoringhq/tolaria/main/site/public/landing/sponsors/unblocked-dark.svg" alt="Unblocked" height="32">
-        </picture>
-      </a>
-    </td>
-  </tr>
-</table>
-
-## Walkthroughs
-
-You can find some Loom walkthroughs below — they are short and to the point:
-- [How I Organize My Own Tolaria Workspace](https://www.loom.com/share/bb3aaffa238b4be0bd62e4464bca2528)
-- [My Inbox Workflow](https://www.loom.com/share/dffda263317b4fa8b47b59cdf9330571)
-- [How I Save Web Resources to Tolaria](https://www.loom.com/share/8a3c1776f801402ebbf4d7b0f31e9882)
-
-## Principles
-
-- 📑 **Files-first** — Your notes are plain markdown files. They're portable, work with any editor, and require no export step. Your data belongs to you, not to any app.
-- 🔌 **Git-first** — Every vault is a git repository. You get full version history, the ability to use any git remote, and zero dependency on Tolaria servers.
-- 🛜 **Offline-first, zero lock-in** — No accounts, no subscriptions, no cloud dependencies. Your vault works completely offline and always will. If you stop using Tolaria, you lose nothing.
-- 🔬 **Open source** — Tolaria is free and open source. I built this for [myself](https://x.com/lucaronin) and for sharing it with others.
-- 📋 **Standards-based** — Notes are markdown files with YAML frontmatter. No proprietary formats, no locked-in data. Everything works with standard tools if you decide to move away from Tolaria.
-- 🔍 **Types as lenses, not schemas** — Types in Tolaria are navigation aids, not enforcement mechanisms. There's no required fields, no validation, just helpful categories for finding notes.
-- 🪄**AI-first but not AI-only** — A vault of files works very well with AI agents, but you are free to use whatever you want. We support Claude Code, Codex CLI, and Gemini CLI setup paths, but you can edit the vault with any AI you want. We provide an AGENTS file for your agents to figure out.
-- ⌨️ **Keyboard-first** — Tolaria is designed for power-users who want to use keyboard as much as possible. A lot of how we designed the Editor and the Command Palette is based on this.
-- 💪 **Built from real use** — Tolaria was created for manage my personal vault of 10,000+ notes, and I use it every day. Every feature exists because it solved a real problem.
-
-## Installation
-
-### Homebrew
-
-Install via Homebrew on macOS:
-
-```batch
-brew install --cask tolaria
-```
-
-### Download from releases
-
-Download the [latest release here](https://refactoringhq.github.io/tolaria/download/) for macOS, Windows, or Linux. Windows installers are Authenticode-signed; company-managed devices may still require IT approval of the Tolaria publisher before first install.
-
-## Getting started
-
-When you open Tolaria for the first time you get the chance of cloning the [getting started vault](https://github.com/refactoringhq/tolaria-getting-started) — which gives you a walkthrough of the whole app.
-
-The public user docs live in [`site/`](site/) and are published to GitHub Pages. Start with [Install Tolaria](site/start/install.md), then [First Launch](site/start/first-launch.md).
-
-## Open source and local setup
-
-Tolaria is open source and built with Tauri, React, and TypeScript. If you want to run or contribute to the app locally, here is [how to get started](https://github.com/refactoringhq/tolaria/blob/main/docs/GETTING-STARTED.md). You can also find the gist below 👇
-
-### Prerequisites
-
-- Node.js 20+
-- pnpm 8+
-- Rust stable
-- macOS or Linux for development
-
-#### Linux system dependencies
-
-Tauri 2 on Linux requires WebKit2GTK 4.1 and GTK 3:
-
-- Arch / Manjaro:
-  ```bash
-  sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl \
-    appmenu-gtk-module libappindicator-gtk3 librsvg
-  ```
-- Debian / Ubuntu (22.04+):
-  ```bash
-  sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file \
-    libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev \
-    libsoup-3.0-dev patchelf
-  ```
-- Fedora 38+:
-  ```bash
-  sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file \
-    libappindicator-gtk3-devel librsvg2-devel
-  ```
-
-The bundled MCP server still spawns the system `node` binary at runtime on Linux, so install Node from your distro package manager if you want the external AI tooling flow.
-
-### Quick start
+## Build locally
 
 ```bash
 pnpm install
-pnpm dev
+CI=true pnpm tauri build
 ```
 
-Open `http://localhost:5173` for the browser-based mock mode, or run the native desktop app with:
+The macOS `.app` is produced at:
+
+```text
+src-tauri/target/release/bundle/macos/GreatcatNote.app
+```
+
+On this fork, the DMG bundling step can fail while the `.app` has already been built. For local use, zip the `.app` bundle and publish that artifact.
 
 ```bash
-pnpm tauri dev
+cd src-tauri/target/release/bundle/macos
+ditto -c -k --sequesterRsrc --keepParent GreatcatNote.app GreatcatNote-macOS-aarch64.zip
 ```
 
-## Tech Docs
+## Keep up with official Tolaria
 
-- 📐 [ARCHITECTURE.md](docs/ARCHITECTURE.md) — System design, tech stack, data flow
-- 🧩 [ABSTRACTIONS.md](docs/ABSTRACTIONS.md) — Core abstractions and models
-- 🚀 [GETTING-STARTED.md](docs/GETTING-STARTED.md) — How to navigate the codebase
-- 📚 [ADRs](docs/adr) — Architecture Decision Records
+Keep two remotes:
 
-## Security
+```bash
+git remote add upstream https://github.com/refactoringhq/tolaria.git
+git remote set-url origin git@github.com:czy1999/GreatcatNote.git
+```
 
-If you believe you have found a security issue, please report it privately as described in [SECURITY.md](./SECURITY.md).
+Update from official Tolaria:
 
-## License
+```bash
+git fetch upstream
+git checkout greatcatnote
+git merge upstream/main
+pnpm install
+CI=true pnpm tauri build
+```
 
-Tolaria is licensed under AGPL-3.0-or-later. The Tolaria name and logo remain covered by the project’s trademark policy.
+If conflicts happen, protect the fork-specific seams first:
+
+- `src-tauri/tauri.conf.json` for app identity and bundle settings.
+- `src/components/ExcalidrawFilePreview.tsx` for embedded Excalidraw editing.
+- `src/utils/filePreview.ts`, `src-tauri/src/vault/mod.rs`, and `src-tauri/src/vault/rename.rs` for file support.
+- `index.html` and `public/fonts/` for Excalidraw font loading.
+- `src/components/note-list/*` and `src/hooks/useNoteCreation.ts` for New Drawing creation.
+
+After each upstream merge, create a fresh local build and open one Markdown file, one HTML file, and one Excalidraw file before releasing.
+
+## Release checklist
+
+```bash
+CI=true pnpm tauri build
+cd src-tauri/target/release/bundle/macos
+ditto -c -k --sequesterRsrc --keepParent GreatcatNote.app GreatcatNote-macOS-aarch64.zip
+gh release create v0.1.0 GreatcatNote-macOS-aarch64.zip --title "GreatcatNote v0.1.0" --notes-file RELEASE_NOTES.md
+```
+
+## License and upstream credit
+
+GreatcatNote is based on Tolaria and keeps the original AGPL-3.0-or-later license. Tolaria's name and logo remain covered by the upstream project's trademark policy.

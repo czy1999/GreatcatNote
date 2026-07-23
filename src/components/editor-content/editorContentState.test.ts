@@ -208,6 +208,42 @@ describe('deriveEditorContentState', () => {
     expect(state.showEditor).toBe(true)
   })
 
+  it.each(['excalidraw', 'excalidraw.json'])('shows .%s files as toggleable Excalidraw previews', (extension) => {
+    const state = deriveState({
+      entry: {
+        ...baseEntry,
+        path: `/vault/diagrams/flow.${extension}`,
+        filename: `flow.${extension}`,
+        fileKind: 'text',
+      },
+      content: '{"type":"excalidraw","elements":[]}',
+    })
+
+    expect(state.isExcalidrawPreview).toBe(true)
+    expect(state.isNonMarkdownText).toBe(false)
+    expect(state.effectiveRawMode).toBe(false)
+    expect(state.showEditor).toBe(true)
+  })
+
+  it('switches an Excalidraw preview to the raw editor when raw mode is enabled', () => {
+    const entry = {
+      ...baseEntry,
+      path: '/vault/diagrams/flow.excalidraw.json',
+      filename: 'flow.excalidraw.json',
+      fileKind: 'text' as const,
+    }
+    const state = deriveEditorContentState({
+      activeTab: { entry, content: '{"type":"excalidraw","elements":[]}' },
+      entries: [entry],
+      rawMode: true,
+      activeStatus: 'clean',
+    })
+
+    expect(state.isExcalidrawPreview).toBe(true)
+    expect(state.effectiveRawMode).toBe(true)
+    expect(state.showEditor).toBe(false)
+  })
+
   it('switches an HTML preview to the raw editor when raw mode is enabled', () => {
     const entry = {
       ...baseEntry,

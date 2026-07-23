@@ -13,9 +13,9 @@ export const NOTE_FORMAT_SHEET = NOTE_DISPLAY_SHEET
 export type NoteFormat = typeof NOTE_DISPLAY_TEXT | typeof NOTE_DISPLAY_SHEET
 
 export function normalizeNoteFormat(value: unknown): NoteFormat {
-  return typeof value === 'string' && value.trim().toLowerCase() === NOTE_DISPLAY_SHEET
-    ? NOTE_DISPLAY_SHEET
-    : NOTE_DISPLAY_TEXT
+  if (typeof value !== 'string') return NOTE_DISPLAY_TEXT
+  const normalized = value.trim().toLowerCase()
+  return normalized === NOTE_DISPLAY_SHEET ? NOTE_DISPLAY_SHEET : NOTE_DISPLAY_TEXT
 }
 
 export function noteFormatFromFrontmatter(frontmatter: Record<string, unknown>): NoteFormat {

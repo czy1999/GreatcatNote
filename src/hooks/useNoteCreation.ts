@@ -34,10 +34,10 @@ export interface NewEntryParams {
   status: string | null
 }
 
-export function buildNewEntry({ path, slug, title, type, status }: NewEntryParams): VaultEntry {
+export function buildNewEntry({ path, title, type, status }: NewEntryParams): VaultEntry {
   const now = Math.floor(Date.now() / 1000)
   return {
-    path, filename: `${slug}.md`, title, isA: type,
+    path, filename: notePathFilename(path), title, isA: type,
     aliases: [], belongsTo: [], relatedTo: [],
     status, archived: false,
     modifiedAt: now, createdAt: now, fileSize: 0,
@@ -666,6 +666,7 @@ interface ImmediateCreateDeps {
 type ImmediateCreationPath =
   | 'cmd_n'
   | 'cmd_sheet'
+  | 'cmd_drawing'
   | 'folder_command_palette'
   | 'folder_context_menu'
   | 'folder_header'
@@ -673,6 +674,7 @@ type ImmediateCreationPath =
 
 export interface ImmediateCreateOptions {
   creationPath?: ImmediateCreationPath
+  drawing?: boolean
   format?: NoteFormat
   folderPath?: string
   vaultPath?: string
@@ -740,27 +742,45 @@ function resolveImmediateCreationVaultPath(deps: ImmediateCreateDeps, request: I
   return request.vaultPath ?? resolveCreationVaultPath(deps.vaultPath, deps.defaultWorkspacePath, deps.vaults)
 }
 
-function immediateNoteRelativePath(slug: string, folderPath?: string): string {
+function immediateNoteRelativePath(slug: string, folderPath?: string, extension = 'md'): string {
   const folder = normalizeVaultRelativePath(folderPath ?? '')
-  return folder ? `${folder}/${slug}.md` : `${slug}.md`
+  return folder ? `${folder}/${slug}.${extension}` : `${slug}.${extension}`
+}
+
+function buildBlankExcalidrawContent(): string {
+  return `${JSON.stringify({
+    type: 'excalidraw',
+    version: 2,
+    source: 'https://github.com/excalidraw/excalidraw',
+    elements: [],
+    appState: {
+      viewBackgroundColor: '#ffffff',
+    },
+    files: {},
+  }, null, 2)}\n`
 }
 
 async function createNoteImmediate(deps: ImmediateCreateDeps, request: ImmediateCreateRequest): Promise<boolean> {
   const noteType = request.type || 'Note'
   const noteFormat = normalizeNoteFormat(request.format)
-  const untitledLabel = noteFormat === NOTE_FORMAT_SHEET ? 'Sheet' : noteType
+  const isDrawing = request.drawing === true
+  const untitledLabel = isDrawing ? 'Drawing' : noteFormat === NOTE_FORMAT_SHEET ? 'Sheet' : noteType
   const slug = generateUntitledFilename(deps.entries, untitledLabel, deps.pendingSlugs)
   const title = slug_to_title(slug)
-  const template = noteFormat === NOTE_FORMAT_SHEET ? null : resolveTemplate({ entries: deps.entries, typeName: noteType })
+  const template = noteFormat === NOTE_FORMAT_SHEET || isDrawing ? null : resolveTemplate({ entries: deps.entries, typeName: noteType })
   const defaults = resolveTypeInstanceDefaults({ entries: deps.entries, typeName: noteType })
   const status = null
   const creationVaultPath = resolveImmediateCreationVaultPath(deps, request)
-  const relativePath = immediateNoteRelativePath(slug, request.folderPath)
-  const entry = {
+  const relativePath = immediateNoteRelativePath(slug, request.folderPath, isDrawing ? 'excalidraw' : 'md')
+  const entry: VaultEntry = {
     ...buildNewEntry({ path: joinVaultPath(creationVaultPath, relativePath), slug, title, type: noteType, status }),
+    ...(isDrawing ? { fileKind: 'text' as const } : {}),
     workspace: workspaceForVaultPath(creationVaultPath, deps.vaults, deps.defaultWorkspacePath),
   }
-  const resolved = applyTypeDefaults({
+  const resolved = isDrawing ? {
+    entry,
+    content: buildBlankExcalidrawContent(),
+  } : applyTypeDefaults({
     entry,
     content: buildNoteContent({
       title: null,

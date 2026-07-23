@@ -27,6 +27,12 @@ vi.mock('../HtmlFilePreview', () => ({
   ),
 }))
 
+vi.mock('../ExcalidrawFilePreview', () => ({
+  ExcalidrawFilePreview: ({ content, title }: { content: string; title: string }) => (
+    <div data-testid="excalidraw-file-preview" data-content={content} data-title={title} />
+  ),
+}))
+
 vi.mock('../SheetEditor', () => ({
   SheetEditor: ({
     content,
@@ -91,6 +97,7 @@ function createModel(overrides: Record<string, unknown> = {}) {
     onEditorChange: vi.fn(),
     isDeletedPreview: false,
     isHtmlPreview: false,
+    isExcalidrawPreview: false,
     rawLatestContentRef: { current: null },
     noteWidth: 'normal',
     onToggleNoteWidth: vi.fn(),
@@ -210,6 +217,28 @@ describe('EditorContentLayout', () => {
 
     expect(screen.getByTestId('html-file-preview')).toHaveAttribute('data-path', '/vault/reports/status.html')
     expect(screen.getByTestId('html-file-preview')).toHaveAttribute('data-content', '<h1>Status</h1>')
+    expect(screen.queryByTestId('single-editor-view')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('raw-editor-view')).not.toBeInTheDocument()
+  })
+
+  it('renders Excalidraw files in the editor pane without mounting the rich editor', async () => {
+    render(<EditorContentLayout {...createModel({
+      isExcalidrawPreview: true,
+      richEditorContentReady: false,
+      activeTab: {
+        entry: {
+          path: '/vault/diagrams/flow.excalidraw.json',
+          filename: 'flow.excalidraw.json',
+          title: 'Flow',
+          fileKind: 'text',
+        },
+        content: '{"type":"excalidraw","elements":[]}',
+      },
+    })} />)
+
+    const preview = await screen.findByTestId('excalidraw-file-preview')
+    expect(preview).toHaveAttribute('data-title', 'Flow')
+    expect(preview).toHaveAttribute('data-content', '{"type":"excalidraw","elements":[]}')
     expect(screen.queryByTestId('single-editor-view')).not.toBeInTheDocument()
     expect(screen.queryByTestId('raw-editor-view')).not.toBeInTheDocument()
   })

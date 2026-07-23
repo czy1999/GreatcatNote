@@ -274,14 +274,30 @@ fn remove_created_file(path: &Path) {
     let _ = fs::remove_file(path);
 }
 
-fn normalize_filename_stem(new_filename_stem: &str) -> Result<String, String> {
+fn normalize_filename(new_filename_stem: &str) -> Result<String, String> {
     let trimmed = new_filename_stem.trim();
-    let stem = trimmed.strip_suffix(".md").unwrap_or(trimmed).trim();
+    let stem = trimmed
+        .strip_suffix(".md")
+        .or_else(|| trimmed.strip_suffix(".excalidraw"))
+        .unwrap_or(trimmed)
+        .trim();
     if stem.is_empty() {
         return Err("New filename cannot be empty".to_string());
     }
     validate_filename_stem(stem)?;
-    Ok(stem.to_string())
+    if trimmed.ends_with(".excalidraw") {
+        Ok(format!("{stem}.excalidraw"))
+    } else {
+        Ok(format!("{stem}.md"))
+    }
+}
+
+fn is_excalidraw_filename(filename: &str) -> bool {
+    filename.ends_with(".excalidraw")
+}
+
+fn blank_excalidraw_scene() -> String {
+    "{\n  \"type\": \"excalidraw\",\n  \"version\": 2,\n  \"source\": \"https://github.com/excalidraw/excalidraw\",\n  \"elements\": [],\n  \"appState\": {},\n  \"files\": {}\n}\n".to_string()
 }
 
 struct LoadedNote {
@@ -406,19 +422,21 @@ pub fn rename_note_filename(
         return Err(format!("File does not exist: {}", old_file.display()));
     }
 
-    let normalized_stem = normalize_filename_stem(request.new_filename_stem)?;
+    let new_filename = normalize_filename(request.new_filename_stem)?;
     let old_filename = old_file
         .file_name()
         .map(|f| f.to_string_lossy().to_string())
         .unwrap_or_default();
-    let content = fs::read_to_string(old_file)
+    let mut content = fs::read_to_string(old_file)
         .map_err(|e| format!("Failed to read {}: {}", request.old_path, e))?;
     let fm_title = extract_fm_title_value(&content);
     let old_title = super::extract_title(fm_title.as_deref(), &content, &old_filename);
-    let new_filename = format!("{}.md", normalized_stem);
-
     if old_filename == new_filename {
         return Ok(unchanged_result(old_file));
+    }
+
+    if !is_excalidraw_filename(&old_filename) && is_excalidraw_filename(&new_filename) {
+        content = blank_excalidraw_scene();
     }
 
     let parent_dir = old_file

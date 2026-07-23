@@ -1,6 +1,11 @@
 packages:
   - mcp-server
 
+allowBuilds:
+  core-js: true
+  esbuild: true
+  protobufjs: true
+
 ignoredBuiltDependencies:
   - esbuild
 

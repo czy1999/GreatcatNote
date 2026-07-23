@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import {
   Wrench, Flask, Target, ArrowsClockwise,
   Users, CalendarBlank, Tag, FileText, StackSimple,
-  File, FileDashed, FilePdf, ImageSquare, SpeakerHigh, Video,
+  File, FileDashed, FilePdf, ImageSquare, Palette, SpeakerHigh, Video,
 } from '@phosphor-icons/react'
 import { getTypeColor, getTypeLightColor } from '../utils/typeColors'
 import { resolveIcon } from '../utils/iconRegistry'
@@ -222,6 +222,7 @@ function InteractiveNoteDetails({
 }
 
 function resolveNoteTypeIcon(entry: VaultEntry, customIcon?: string | null): ComponentType<SVGAttributes<SVGSVGElement>> {
+  if (entry.filename.toLowerCase().endsWith('.excalidraw') || entry.filename.toLowerCase().endsWith('.excalidraw.json')) return Palette
   const previewKind = filePreviewKind(entry)
   if (previewKind === 'image') return ImageSquare
   if (previewKind === 'pdf') return FilePdf

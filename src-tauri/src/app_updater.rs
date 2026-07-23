@@ -221,36 +221,19 @@ async fn install_update(
 }
 
 pub async fn check_for_app_update<R: Runtime>(
-    app_handle: AppHandle<R>,
-    release_channel: Option<String>,
+    _app_handle: AppHandle<R>,
+    _release_channel: Option<String>,
 ) -> Result<Option<AppUpdateMetadata>, String> {
-    let channel = ReleaseChannel::from_settings_value(release_channel.as_deref());
-    let updater = build_updater(&app_handle, updater_endpoint(channel).await?)?;
-    let update = updater
-        .check()
-        .await
-        .map_err(|e| format!("Failed to check for updates: {e}"))?;
-
-    Ok(update.map(to_update_metadata))
+    Ok(None)
 }
 
 pub async fn download_and_install_app_update<R: Runtime>(
-    app_handle: AppHandle<R>,
-    release_channel: Option<String>,
-    expected_version: String,
-    on_event: Channel<AppUpdateDownloadEvent>,
+    _app_handle: AppHandle<R>,
+    _release_channel: Option<String>,
+    _expected_version: String,
+    _on_event: Channel<AppUpdateDownloadEvent>,
 ) -> Result<(), String> {
-    let channel = ReleaseChannel::from_settings_value(release_channel.as_deref());
-    let updater = build_updater(&app_handle, updater_endpoint(channel).await?)?;
-    let update = updater
-        .check()
-        .await
-        .map_err(|e| format!("Failed to refresh update metadata: {e}"))?
-        .ok_or_else(|| "No update is currently available".to_string())?;
-
-    ensure_expected_update_version(&update, &expected_version)?;
-
-    install_update(update, on_event).await
+    Err("GreatcatNote custom builds do not use the Tolaria updater.".to_string())
 }
 
 #[cfg(test)]

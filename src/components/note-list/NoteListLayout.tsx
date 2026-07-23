@@ -273,6 +273,7 @@ function NoteListLayoutHeader({
   searchInputRef,
   propertyPicker,
   handleSortChange,
+  handleCreateDrawing,
   handleCreateNote,
   onOpenType,
   toggleSearch,
@@ -298,6 +299,7 @@ function NoteListLayoutHeader({
   | 'searchInputRef'
   | 'propertyPicker'
   | 'handleSortChange'
+  | 'handleCreateDrawing'
   | 'handleCreateNote'
   | 'onOpenType'
   | 'toggleSearch'
@@ -324,6 +326,7 @@ function NoteListLayoutHeader({
       searchInputRef={searchInputRef}
       propertyPicker={propertyPicker}
       onSortChange={handleSortChange}
+      onCreateDrawing={handleCreateDrawing}
       onCreateNote={handleCreateNote}
       onOpenType={onOpenType}
       onToggleSearch={toggleSearch}

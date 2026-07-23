@@ -260,6 +260,7 @@ const TEXT_EXTENSIONS: &[&str] = &[
     "yml",
     "yaml",
     "json",
+    "excalidraw",
     "txt",
     "toml",
     "csv",

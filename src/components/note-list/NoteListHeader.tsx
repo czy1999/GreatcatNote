@@ -1,4 +1,4 @@
-import { CircleNotch as Loader2, MagnifyingGlass, Plus, SidebarSimple, X } from '@phosphor-icons/react'
+import { CircleNotch as Loader2, MagnifyingGlass, Palette, Plus, SidebarSimple, X } from '@phosphor-icons/react'
 import type { VaultEntry } from '../../types'
 import type { SortOption, SortDirection } from '../../utils/noteListHelpers'
 import { translate, type AppLocale, type TranslationKey } from '../../lib/i18n'
@@ -51,6 +51,7 @@ interface NoteListHeaderProps {
   selectedGitRepositoryPath?: string
   locale?: AppLocale
   onSortChange: (groupLabel: string, option: SortOption, direction: SortDirection) => void
+  onCreateDrawing: () => void
   onCreateNote: () => void
   onOpenType: (entry: VaultEntry) => void
   onToggleSearch: () => void
@@ -168,6 +169,7 @@ function HeaderActions({
   propertyPicker,
   locale,
   onSortChange,
+  onCreateDrawing,
   onCreateNote,
   onToggleSearch,
 }: Pick<
@@ -179,6 +181,7 @@ function HeaderActions({
   | 'propertyPicker'
   | 'locale'
   | 'onSortChange'
+  | 'onCreateDrawing'
   | 'onCreateNote'
   | 'onToggleSearch'
 > & {
@@ -198,6 +201,9 @@ function HeaderActions({
           locale={locale}
         />
       )}
+      <Button type="button" variant="ghost" size="icon-xs" className={NOTE_LIST_ACTION_BUTTON_CLASSNAME} onClick={onCreateDrawing} title="New drawing" aria-label="New drawing">
+        <Palette size={16} />
+      </Button>
       <Button type="button" variant="ghost" size="icon-xs" className={NOTE_LIST_ACTION_BUTTON_CLASSNAME} onClick={onCreateNote} title={translate(locale, 'noteList.createNote')} aria-label={translate(locale, 'noteList.createNote')}>
         <Plus size={16} />
       </Button>
@@ -293,6 +299,7 @@ export function NoteListHeader({
   selectedGitRepositoryPath = '',
   locale = 'en',
   onSortChange,
+  onCreateDrawing,
   onCreateNote,
   onOpenType,
   onToggleSearch,
@@ -323,6 +330,7 @@ export function NoteListHeader({
           propertyPicker={propertyPicker}
           locale={locale}
           onSortChange={onSortChange}
+          onCreateDrawing={onCreateDrawing}
           onCreateNote={onCreateNote}
           onToggleSearch={onToggleSearch}
         />

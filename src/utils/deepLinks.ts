@@ -2,7 +2,7 @@ import type { VaultEntry } from '../types'
 import { joinVaultPath, normalizeNotePathForCollision, normalizeNotePathForIdentity, normalizeNotePathSeparators } from './notePathIdentity'
 import { workspaceAliasFromOption } from './workspaces'
 
-export const TOLARIA_DEEP_LINK_SCHEME = 'tolaria'
+export const TOLARIA_DEEP_LINK_SCHEME = 'greatcatnote'
 
 export interface DeepLinkVault {
   alias?: string | null

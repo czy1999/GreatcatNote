@@ -82,6 +82,7 @@ const LOADING_BREADCRUMB_ENTRY: VaultEntry = {
 }
 
 const LazySheetEditor = lazy(() => import('../SheetEditor').then((module) => ({ default: module.SheetEditor })))
+const LazyExcalidrawFilePreview = lazy(() => import('../ExcalidrawFilePreview').then((module) => ({ default: module.ExcalidrawFilePreview })))
 
 function SheetEditorLoading({ locale = 'en' }: { locale?: AppLocale }) {
   return (
@@ -357,6 +358,7 @@ function EditorChrome({
 type EditorCanvasProps = Pick<
   EditorContentModel,
   | 'showEditor'
+  | 'isExcalidrawPreview'
   | 'isHtmlPreview'
   | 'isSheet'
   | 'richEditorContentReady'
@@ -376,6 +378,18 @@ type EditorCanvasProps = Pick<
 
 function EditorCanvas(props: EditorCanvasProps) {
   if (!props.showEditor) return null
+  if (props.isExcalidrawPreview && props.activeTab) {
+    return (
+      <Suspense fallback={<SheetEditorLoading locale={props.locale} />}>
+        <LazyExcalidrawFilePreview
+          content={props.activeTab.content}
+          onContentSaved={props.onRawContentChange}
+          path={props.activeTab.entry.path}
+          title={props.activeTab.entry.title}
+        />
+      </Suspense>
+    )
+  }
   if (props.isHtmlPreview && props.activeTab) {
     return (
       <HtmlFilePreview
@@ -525,10 +539,11 @@ export function EditorContentLayout(model: EditorContentModel) {
     locale,
     onImageImportError,
     isVaultLoading,
+    isExcalidrawPreview,
   } = model
   const rootClassName = cn(
     'flex flex-1 flex-col min-w-0 min-h-0',
-    isHtmlPreview || isSheet || noteWidth === 'wide' ? 'editor-content-width--wide' : 'editor-content-width--normal',
+    isExcalidrawPreview || isHtmlPreview || isSheet || noteWidth === 'wide' ? 'editor-content-width--wide' : 'editor-content-width--normal',
   )
   const chromeTab = activeTab ?? loadingTab
   const chromePath = chromeTab?.entry.path ?? path
@@ -576,6 +591,7 @@ export function EditorContentLayout(model: EditorContentModel) {
           />
           <EditorCanvas
             showEditor={showEditor}
+            isExcalidrawPreview={isExcalidrawPreview}
             isHtmlPreview={isHtmlPreview}
             richEditorContentReady={richEditorContentReady}
             cssVars={cssVars}

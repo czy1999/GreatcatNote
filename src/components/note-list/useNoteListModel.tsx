@@ -430,6 +430,9 @@ function useNoteListInteractionState({
     openContextMenuForEntry: changesContextMenu.openContextMenuForEntry,
     onCreateNote,
   })
+  const handleCreateDrawing = useCallback(() => {
+    onCreateNote('Note', { creationPath: 'cmd_drawing', drawing: true })
+  }, [onCreateNote])
   const getChangeStatus = useChangeStatusResolver(isChangesView, modifiedFiles)
   const {
     handleBulkArchive,
@@ -445,6 +448,7 @@ function useNoteListInteractionState({
     handleBulkDeletePermanently,
     handleBulkUnarchive,
     handleClickNote,
+    handleCreateDrawing,
     handleCreateNote,
     handleListKeyDown,
     multiSelect,
@@ -619,6 +623,7 @@ function buildNoteListLayoutModel(params: {
     searchInputRef: params.content.searchInputRef,
     propertyPicker: params.content.propertyPicker,
     handleSortChange: params.content.handleSortChange,
+    handleCreateDrawing: params.interaction.handleCreateDrawing,
     handleCreateNote: params.interaction.handleCreateNote,
     onOpenType: params.onOpenType,
     toggleSearch: params.content.toggleSearch,

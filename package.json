@@ -1,5 +1,5 @@
 {
-  "name": "tolaria",
+  "name": "greatcatnote",
   "private": true,
   "license": "AGPL-3.0-or-later",
   "version": "0.1.0",
@@ -51,6 +51,7 @@
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
+    "@excalidraw/excalidraw": "^0.18.1",
     "@ironcalc/wasm": "0.5.4",
     "@ironcalc/workbook": "0.5.7",
     "@lezer/highlight": "^1.2.3",

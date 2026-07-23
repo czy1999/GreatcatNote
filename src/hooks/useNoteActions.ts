@@ -758,6 +758,8 @@ export function useNoteActions(config: NoteActionsConfig) {
     handleSwitchTab,
   } = tabMgmt
   const handleSelectNote = useCallback(async (entry: VaultEntry) => {
+    const confirmLeaveDrawing = (window as Window & { __greatcatnoteConfirmLeaveDrawing?: () => boolean }).__greatcatnoteConfirmLeaveDrawing
+    if (confirmLeaveDrawing && !confirmLeaveDrawing()) return
     await selectTab(entry)
   }, [selectTab])
   const revealActionHistoryTarget = useCallback(async (item: ActionHistoryEntry) => {

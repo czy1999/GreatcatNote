@@ -36,9 +36,14 @@ export function isHtmlFileEntry(entry: Pick<VaultEntry, 'filename' | 'path'>): b
   return extension === 'html' || extension === 'htm'
 }
 
+export function isExcalidrawFileEntry(entry: Pick<VaultEntry, 'filename' | 'path'>): boolean {
+  const name = (entry.filename || entry.path.split(/[\\/]/u).pop() || entry.path).toLowerCase()
+  return name.endsWith('.excalidraw') || name.endsWith('.excalidraw.json')
+}
+
 export function entrySupportsPreviewSourceToggle(entry: Pick<VaultEntry, 'filename' | 'path'>): boolean {
   const extension = previewExtension(entry)
-  return extension === 'md' || extension === 'markdown' || extension === 'html' || extension === 'htm'
+  return extension === 'md' || extension === 'markdown' || extension === 'html' || extension === 'htm' || isExcalidrawFileEntry(entry)
 }
 
 export function isImagePreviewEntry(entry: Pick<VaultEntry, 'fileKind' | 'filename' | 'path'>): boolean {
