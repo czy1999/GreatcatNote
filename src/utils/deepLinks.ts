@@ -3,6 +3,7 @@ import { joinVaultPath, normalizeNotePathForCollision, normalizeNotePathForIdent
 import { workspaceAliasFromOption } from './workspaces'
 
 export const TOLARIA_DEEP_LINK_SCHEME = 'greatcatnote'
+const LEGACY_TOLARIA_DEEP_LINK_SCHEME = 'tolaria'
 
 export interface DeepLinkVault {
   alias?: string | null
@@ -139,7 +140,7 @@ function decodeRelativePath({ path }: VaultRelativePathInput): string | null {
 }
 
 function rawPathnameForTolariaUrl({ rawUrl }: TolariaDeepLinkInput): string | null {
-  return rawUrl.match(/^tolaria:\/\/[^/?#]+(\/[^?#]*)/iu)?.[1] ?? null
+  return rawUrl.match(/^[a-z][a-z0-9+.-]*:\/\/[^/?#]+(\/[^?#]*)/iu)?.[1] ?? null
 }
 
 function isSafePathSegment({ segment }: { segment: string }): boolean {
@@ -198,7 +199,7 @@ export function parseTolariaDeepLink({ rawUrl }: TolariaDeepLinkInput): ParsedTo
     return { ok: false, error: 'malformed_url' }
   }
 
-  if (parsed.protocol !== `${TOLARIA_DEEP_LINK_SCHEME}:`) return { ok: false, error: 'invalid_scheme' }
+  if (parsed.protocol !== `${TOLARIA_DEEP_LINK_SCHEME}:` && parsed.protocol !== `${LEGACY_TOLARIA_DEEP_LINK_SCHEME}:`) return { ok: false, error: 'invalid_scheme' }
   if (!parsed.hostname) return { ok: false, error: 'missing_vault' }
 
   const rawPathname = rawPathnameForTolariaUrl({ rawUrl })

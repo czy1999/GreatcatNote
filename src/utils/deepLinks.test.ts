@@ -28,7 +28,7 @@ describe('Tolaria deep links', () => {
 
     expect(result).toEqual({
       ok: true,
-      url: 'tolaria://work-vault/sponsorships/Acme%20call%20%231.md',
+      url: 'greatcatnote://work-vault/sponsorships/Acme%20call%20%231.md',
     })
   })
 
