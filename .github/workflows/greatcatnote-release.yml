@@ -1,0 +1,134 @@
+name: GreatcatNote cloud release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: greatcatnote-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: macOS app
+            os: macos-15
+            bundles: app
+          - label: Linux AppImage/deb
+            os: ubuntu-22.04
+            bundles: appimage,deb
+          - label: Windows installer
+            os: windows-latest
+            bundles: nsis
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@f40ffc3d4cce1bf1c334c5c9f26e0456d4a4063b
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - uses: oven-sh/setup-bun@735343b667d3e6f658f44d0eca948eb6282f2b76
+
+      - uses: dtolnay/rust-toolchain@29eefb281be0065217eab7100d5a2a549b39acb2
+        with:
+          toolchain: stable
+
+      - name: Install Linux dependencies
+        if: ${{ runner.os == 'Linux' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set app version from tag
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          node -e 'const v=process.argv[1]; if (!/^\d+\.\d+\.\d+([-+][0-9A-Za-z.-]+)?$/.test(v)) { console.error(`Tags must look like v1.2.3, got ${process.env.GITHUB_REF_NAME}`); process.exit(1); }' "$VERSION"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          node <<'NODE'
+          const fs = require("fs");
+          const tauriConf = "src-tauri/tauri.conf.json";
+          const conf = JSON.parse(fs.readFileSync(tauriConf, "utf8"));
+          conf.version = process.env.VERSION;
+          fs.writeFileSync(tauriConf, JSON.stringify(conf, null, 2) + "\n");
+
+          const cargoToml = "src-tauri/Cargo.toml";
+          const cargo = fs.readFileSync(cargoToml, "utf8").replace(/^version = ".*"$/m, `version = "${process.env.VERSION}"`);
+          fs.writeFileSync(cargoToml, cargo);
+          NODE
+
+      - name: Build Tauri app
+        shell: bash
+        run: CI=true pnpm tauri build --bundles "${{ matrix.bundles }}"
+
+      - name: Package macOS app
+        if: ${{ runner.os == 'macOS' }}
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          app_path="$(find src-tauri/target/release/bundle/macos -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$app_path"
+          ditto -c -k --sequesterRsrc --keepParent "$app_path" "release-assets/GreatcatNote_${VERSION}_macOS.zip"
+
+      - name: Package Linux bundles
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          mkdir -p release-assets
+          find src-tauri/target/release/bundle -type f \( -name '*.AppImage' -o -name '*.deb' \) -exec cp {} release-assets/ \;
+          test "$(find release-assets -type f | wc -l)" -gt 0
+
+      - name: Package Windows installer
+        if: ${{ runner.os == 'Windows' }}
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force release-assets
+          $files = Get-ChildItem src-tauri\target\release\bundle -Recurse -File -Include *.exe,*.msi
+          if (!$files) { throw "No Windows installer was produced." }
+          $files | Copy-Item -Destination release-assets
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: greatcatnote-${{ runner.os }}
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: GreatcatNote ${{ github.ref_name }}
+          files: release-assets/*
+          generate_release_notes: true
+          make_latest: true
