@@ -49,7 +49,7 @@ Update from official Tolaria:
 
 ```bash
 git fetch upstream
-git checkout greatcatnote
+git checkout main
 git merge upstream/main
 pnpm install
 CI=true pnpm tauri build
