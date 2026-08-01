@@ -456,6 +456,7 @@ pub async fn download_and_install_app_update(
 
 #[tauri::command]
 pub fn reinit_telemetry() {
+    #[cfg(desktop)]
     crate::telemetry::reinit_sentry();
 }
 

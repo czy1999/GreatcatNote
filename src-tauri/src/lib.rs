@@ -37,6 +37,7 @@ mod pi_discovery;
 mod pi_events;
 pub mod search;
 pub mod settings;
+#[cfg(desktop)]
 pub mod telemetry;
 pub mod vault;
 pub mod vault_list;
@@ -418,8 +419,11 @@ fn setup_app(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         setup_desktop_plugins(app)?;
     }
 
-    if telemetry::init_sentry_from_settings() {
-        log::info!("Sentry initialized (crash reporting enabled)");
+    #[cfg(desktop)]
+    {
+        if telemetry::init_sentry_from_settings() {
+            log::info!("Sentry initialized (crash reporting enabled)");
+        }
     }
 
     #[cfg(desktop)]
