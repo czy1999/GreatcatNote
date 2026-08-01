@@ -43,6 +43,9 @@ final_selection.py
 .claude-done
 .claude-blocked
 src-tauri/target
+android-lite/.gradle/
+android-lite/local.properties
+android-lite/app/build/
 
 # Generated mcp-server bundle (built by scripts/bundle-mcp-server.mjs)
 src-tauri/resources/mcp-server/
