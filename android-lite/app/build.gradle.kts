@@ -65,7 +65,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
     implementation("io.noties.markwon:core:4.6.2")
     implementation("org.eclipse.jgit:org.eclipse.jgit:6.10.1.202505221210-r")
-    implementation("org.slf4j:slf4j-android:2.0.17")
+    implementation("org.slf4j:slf4j-nop:2.0.17")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
