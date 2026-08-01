@@ -39,6 +39,7 @@ class SecureSettings(context: Context) {
     }
 
     private fun encrypt(value: String): String {
+        // nosemgrep: codacy.tools-configs.kotlin.lang.security.gcm-detection.gcm-detection -- Keystore creates a fresh random IV for every encryption.
         val cipher = Cipher.getInstance(TRANSFORMATION)
         cipher.init(Cipher.ENCRYPT_MODE, secretKey(), SecureRandom())
         val encrypted = cipher.doFinal(value.toByteArray(Charsets.UTF_8))
