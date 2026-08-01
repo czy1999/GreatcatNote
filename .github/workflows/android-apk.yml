@@ -52,7 +52,7 @@ jobs:
         run: pnpm tauri android init
 
       - name: Build debug APK
-        run: pnpm tauri android build -- --apk --debug
+        run: pnpm tauri android build --apk --debug
 
       - uses: actions/upload-artifact@v4
         with:
