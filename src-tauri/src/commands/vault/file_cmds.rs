@@ -1,6 +1,7 @@
 use crate::commands::expand_tilde;
 use crate::vault::filename_rules::validate_folder_name;
 use crate::vault::{self, FolderNode, VaultEntry};
+use base64::Engine;
 use std::path::{Path, PathBuf};
 
 use super::boundary::{
@@ -247,6 +248,26 @@ pub fn create_note_content(
 ) -> Result<(), String> {
     with_writable_note_path(path, vault_path, |validated_path| {
         vault::create_note_content(validated_path, &content)
+    })
+}
+
+#[tauri::command]
+pub fn write_file_base64(
+    path: PathBuf,
+    content_base64: String,
+    vault_path: Option<PathBuf>,
+) -> Result<(), String> {
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(content_base64.replace(['\n', '\r'], ""))
+        .map_err(|error| format!("Invalid base64 content: {error}"))?;
+
+    with_writable_note_path(path, vault_path, |validated_path| {
+        let file_path = Path::new(validated_path);
+        if let Some(parent) = file_path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|error| format!("Failed to create parent directory: {error}"))?;
+        }
+        std::fs::write(file_path, bytes).map_err(|error| format!("Failed to write file: {error}"))
     })
 }
 

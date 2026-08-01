@@ -40,6 +40,9 @@ export default function MobileApp() {
   const [active, setActive] = useState<VaultEntry | null>(null)
   const [content, setContent] = useState('')
   const [remoteUrl, setRemoteUrl] = useState('')
+  const [syncRepo, setSyncRepo] = useState(() => window.localStorage.getItem('greatcatnote.mobile.repo') ?? '')
+  const [syncBranch, setSyncBranch] = useState(() => window.localStorage.getItem('greatcatnote.mobile.branch') ?? 'main')
+  const [syncToken, setSyncToken] = useState('')
   const [status, setStatus] = useState('启动中...')
   const [error, setError] = useState('')
 
@@ -107,21 +110,135 @@ export default function MobileApp() {
     await refresh(clonedPath)
   }
 
+  function syncHeaders(): HeadersInit {
+    return {
+      Accept: 'application/vnd.github+json',
+      Authorization: `Bearer ${syncToken.trim()}`,
+      'X-GitHub-Api-Version': '2022-11-28',
+    }
+  }
+
+  function syncManifestKey(): string {
+    return `greatcatnote.mobile.manifest.${syncRepo.trim()}.${syncBranch.trim()}`
+  }
+
+  function readManifest(): Record<string, string> {
+    try {
+      return JSON.parse(window.localStorage.getItem(syncManifestKey()) ?? '{}') as Record<string, string>
+    } catch {
+      return {}
+    }
+  }
+
+  function saveManifest(manifest: Record<string, string>) {
+    window.localStorage.setItem(syncManifestKey(), JSON.stringify(manifest))
+  }
+
+  async function githubJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const response = await fetch(`https://api.github.com/repos/${syncRepo.trim()}${path}`, {
+      ...init,
+      headers: { ...syncHeaders(), ...(init.headers ?? {}) },
+    })
+    if (!response.ok) throw new Error(`GitHub ${response.status}: ${await response.text()}`)
+    return response.json() as Promise<T>
+  }
+
+  async function remoteTree(): Promise<Record<string, string>> {
+    const ref = await githubJson<{ object: { sha: string } }>(`/git/ref/heads/${encodeURIComponent(syncBranch.trim())}`)
+    const tree = await githubJson<{ tree: Array<{ path: string, type: string, sha: string }> }>(`/git/trees/${ref.object.sha}?recursive=1`)
+    return Object.fromEntries(
+      tree.tree
+        .filter((item) => item.type === 'blob' && /\.(md|markdown|pdf)$/i.test(item.path))
+        .map((item) => [item.path, item.sha]),
+    )
+  }
+
+  async function pullGithubChanges() {
+    if (!vaultPath || !syncRepo.trim() || !syncToken.trim()) return
+    window.localStorage.setItem('greatcatnote.mobile.repo', syncRepo.trim())
+    window.localStorage.setItem('greatcatnote.mobile.branch', syncBranch.trim())
+    const manifest = readManifest()
+    const tree = await remoteTree()
+    let changed = 0
+    for (const [path, sha] of Object.entries(tree)) {
+      if (manifest[path] === sha) continue
+      const blob = await githubJson<{ content: string, encoding: string }>(`/git/blobs/${sha}`)
+      if (blob.encoding !== 'base64') continue
+      await invoke('write_file_base64', {
+        path: `${vaultPath}/${path}`,
+        contentBase64: blob.content,
+        vaultPath,
+      })
+      manifest[path] = sha
+      changed += 1
+    }
+    saveManifest(manifest)
+    setStatus(`已增量拉取 ${changed} 个文件`)
+    await refresh()
+  }
+
+  function bytesToBase64(bytes: Uint8Array): string {
+    let binary = ''
+    for (const byte of bytes) binary += String.fromCharCode(byte)
+    return btoa(binary)
+  }
+
+  async function gitBlobSha(text: string): Promise<string> {
+    const body = new TextEncoder().encode(text)
+    const header = new TextEncoder().encode(`blob ${body.length}\0`)
+    const payload = new Uint8Array(header.length + body.length)
+    payload.set(header)
+    payload.set(body, header.length)
+    const digest = await crypto.subtle.digest('SHA-1', payload)
+    return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  }
+
+  async function pushMarkdownChanges() {
+    if (!vaultPath || !syncRepo.trim() || !syncToken.trim()) return
+    const tree = await remoteTree()
+    const manifest = readManifest()
+    let changed = 0
+    for (const entry of entries.filter(isMarkdown)) {
+      const relativePath = entry.path.startsWith(`${vaultPath}/`) ? entry.path.slice(vaultPath.length + 1) : entry.filename
+      const markdown = await invoke<string>('get_note_content', { path: entry.path, vaultPath })
+      const localSha = await gitBlobSha(markdown)
+      if (tree[relativePath] === localSha) {
+        manifest[relativePath] = localSha
+        continue
+      }
+      await githubJson(`/contents/${relativePath.split('/').map(encodeURIComponent).join('/')}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          branch: syncBranch.trim(),
+          content: bytesToBase64(new TextEncoder().encode(markdown)),
+          message: `Mobile sync ${relativePath}`,
+          sha: tree[relativePath],
+        }),
+      })
+      manifest[relativePath] = localSha
+      changed += 1
+    }
+    saveManifest(manifest)
+    setStatus(`已上传 ${changed} 个 Markdown 文件`)
+  }
+
   async function syncNow() {
-    if (!vaultPath) return
     setError('')
-    setStatus('正在同步...')
+    setStatus('正在增量同步 GitHub...')
+    if (syncRepo.trim() && syncToken.trim()) {
+      await pullGithubChanges()
+      await pushMarkdownChanges()
+      setStatus('GitHub 增量同步完成')
+      await refresh()
+      return
+    }
+    if (!vaultPath) return
     await invoke('git_pull', { vaultPath })
     const changed = await invoke<unknown[]>('get_modified_files', { vaultPath, includeStats: false })
-    if (changed.length > 0) {
-      await invoke('git_commit', {
-        vaultPath,
-        message: `Mobile sync ${new Date().toLocaleString()}`,
-      })
-    }
+    if (changed.length > 0) await invoke('git_commit', { vaultPath, message: `Mobile sync ${new Date().toLocaleString()}` })
     await invoke('git_push', { vaultPath })
     const remote = await invoke<GitRemoteStatus>('git_remote_status', { vaultPath })
-    setStatus(`同步完成 · ${remote.branch || 'main'} · ahead ${remote.ahead} / behind ${remote.behind}`)
+    setStatus(`系统 git 同步完成 · ${remote.branch || 'main'} · ahead ${remote.ahead} / behind ${remote.behind}`)
     await refresh()
   }
 
@@ -164,6 +281,11 @@ export default function MobileApp() {
               placeholder="Git 仓库 URL，可选"
             />
             <button className="mobile-button secondary" onClick={() => void run(cloneRemote)}>克隆</button>
+          </div>
+          <div className="mobile-sync-row">
+            <input className="mobile-input" value={syncRepo} onChange={(event) => setSyncRepo(event.target.value)} placeholder="GitHub repo: owner/name" />
+            <input className="mobile-input" value={syncBranch} onChange={(event) => setSyncBranch(event.target.value)} placeholder="branch" />
+            <input className="mobile-input" value={syncToken} onChange={(event) => setSyncToken(event.target.value)} placeholder="GitHub token" type="password" />
           </div>
           <p className="mobile-muted">{status}</p>
           {error && <div className="mobile-error">{error}</div>}
