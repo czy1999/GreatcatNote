@@ -8,7 +8,7 @@ import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
-import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.GCMParameterSpec
 
 data class RepoSettings(
     val remoteUrl: String = "",
@@ -59,7 +59,7 @@ class SecureSettings(context: Context) {
         cipher.init(
             Cipher.DECRYPT_MODE,
             secretKey(),
-            IvParameterSpec(Base64.decode(pieces[0], Base64.NO_WRAP)),
+            GCMParameterSpec(128, Base64.decode(pieces[0], Base64.NO_WRAP)),
         )
         return String(cipher.doFinal(Base64.decode(pieces[1], Base64.NO_WRAP)), Charsets.UTF_8)
     }
