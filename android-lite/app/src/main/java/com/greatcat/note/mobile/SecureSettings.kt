@@ -10,32 +10,25 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
+internal const val PERSONAL_REMOTE_URL = "https://github.com/czy1999/Greatcat.git"
+internal const val PERSONAL_BRANCH = "master"
+internal const val PERSONAL_USERNAME = "czy1999"
+
 data class RepoSettings(
-    val remoteUrl: String = "",
-    val branch: String = "main",
-    val username: String = "",
+    val remoteUrl: String = PERSONAL_REMOTE_URL,
+    val branch: String = PERSONAL_BRANCH,
+    val username: String = PERSONAL_USERNAME,
 )
 
 class SecureSettings(context: Context) {
     private val preferences = context.getSharedPreferences("greatcat_mobile", Context.MODE_PRIVATE)
 
-    fun load(): RepoSettings = RepoSettings(
-        remoteUrl = preferences.getString(KEY_REMOTE, "").orEmpty(),
-        branch = preferences.getString(KEY_BRANCH, "main").orEmpty().ifBlank { "main" },
-        username = preferences.getString(KEY_USERNAME, "").orEmpty(),
-    )
+    fun load(): RepoSettings = RepoSettings()
 
     fun hasToken(): Boolean = preferences.contains(KEY_TOKEN)
 
-    fun save(settings: RepoSettings, newToken: String) {
-        preferences.edit()
-            .putString(KEY_REMOTE, settings.remoteUrl.trim())
-            .putString(KEY_BRANCH, settings.branch.trim())
-            .putString(KEY_USERNAME, settings.username.trim())
-            .apply()
-        if (newToken.isNotBlank()) {
-            preferences.edit().putString(KEY_TOKEN, encrypt(newToken.trim())).apply()
-        }
+    fun saveToken(newToken: String) {
+        preferences.edit().putString(KEY_TOKEN, encrypt(newToken.trim())).apply()
     }
 
     fun token(): String = preferences.getString(KEY_TOKEN, null)?.let(::decrypt).orEmpty()
@@ -85,9 +78,6 @@ class SecureSettings(context: Context) {
         const val ANDROID_KEYSTORE = "AndroidKeyStore"
         const val KEY_ALIAS = "greatcatnote.git-token"
         const val TRANSFORMATION = "AES/GCM/NoPadding"
-        const val KEY_REMOTE = "remote_url"
-        const val KEY_BRANCH = "branch"
-        const val KEY_USERNAME = "username"
         const val KEY_TOKEN = "token"
     }
 }

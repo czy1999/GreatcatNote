@@ -47,7 +47,7 @@ data class AppState(
     val hasToken: Boolean = false,
     val reader: ReaderTarget? = null,
     val busy: Boolean = false,
-    val status: String = "配置 Git 仓库后即可开始增量同步",
+    val status: String = "点击同步获取知识库最新内容",
     val error: String? = null,
 )
 
@@ -64,16 +64,22 @@ class GreatcatViewModel(application: Application) : AndroidViewModel(application
         refreshFiles()
     }
 
-    fun saveSettings(settings: RepoSettings, token: String) {
+    fun saveToken(token: String): Boolean {
+        var saved = false
         runCatching {
-            if (settings.remoteUrl.isNotBlank()) validateRemoteUrl(settings.remoteUrl)
-            validateBranch(settings.branch)
-            secureSettings.save(settings, token)
+            require(token.isNotBlank()) { "请输入 GitHub 私有令牌" }
+            secureSettings.saveToken(token)
         }.onSuccess {
             mutableState.update {
                 it.copy(settings = secureSettings.load(), hasToken = secureSettings.hasToken(), error = null)
             }
+            saved = true
         }.onFailure(::showError)
+        return saved
+    }
+
+    fun connect(token: String) {
+        if (saveToken(token)) sync()
     }
 
     fun clearToken() {
@@ -169,7 +175,7 @@ class GreatcatViewModel(application: Application) : AndroidViewModel(application
                         modifiedAt = file.lastModified(),
                     )
                 }
-                .sortedWith(compareBy<VaultFile> { it.relativePath.lowercase() })
+                .sortedByDescending(VaultFile::modifiedAt)
                 .toList()
         }
         mutableState.update { it.copy(files = files) }

@@ -6,10 +6,10 @@ import android.graphics.Color as AndroidColor
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import android.text.method.LinkMovementMethod
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -64,15 +65,21 @@ private fun MarkdownReader(target: ReaderTarget, modifier: Modifier) {
                     AndroidView(
                         modifier = Modifier.fillMaxSize(),
                         factory = { viewContext ->
-                            TextView(viewContext).apply {
-                                setPadding(48, 36, 48, 80)
-                                textSize = 18f
-                                setTextColor(AndroidColor.rgb(34, 45, 42))
-                                setLineSpacing(8f, 1.08f)
-                                movementMethod = LinkMovementMethod.getInstance()
+                            ScrollView(viewContext).apply {
+                                isFillViewport = true
+                                setBackgroundColor(AndroidColor.rgb(255, 253, 248))
+                                addView(TextView(viewContext).apply {
+                                    setPadding(52, 42, 52, 120)
+                                    textSize = 19f
+                                    setTextColor(AndroidColor.rgb(32, 42, 39))
+                                    setLineSpacing(10f, 1.12f)
+                                    includeFontPadding = false
+                                    setTextIsSelectable(true)
+                                    movementMethod = LinkMovementMethod.getInstance()
+                                })
                             }
                         },
-                        update = { markwon.setMarkdown(it, markdown) },
+                        update = { scroll -> markwon.setMarkdown(scroll.getChildAt(0) as TextView, markdown) },
                     )
                 },
                 onFailure = { ReaderError(it.message ?: "无法读取 Markdown") },
@@ -118,14 +125,14 @@ private fun PdfReader(target: ReaderTarget, modifier: Modifier) {
                 PdfPageState.Loading -> CircularProgressIndicator()
                 is PdfPageState.Failed -> ReaderError(current.message)
                 is PdfPageState.Ready -> {
-                    // ponytail: render one page at a time; add a bounded page cache only if large PDFs feel slow.
-                    Box(
-                        Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                            .horizontalScroll(rememberScrollState()).padding(16.dp),
+                    Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
                     ) {
                         Image(
                             bitmap = current.page.bitmap.asImageBitmap(),
                             contentDescription = "PDF 第 ${current.page.index + 1} 页",
+                            modifier = Modifier.fillMaxWidth(),
+                            contentScale = ContentScale.FillWidth,
                         )
                     }
                 }

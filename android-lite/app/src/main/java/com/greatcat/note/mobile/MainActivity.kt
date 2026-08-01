@@ -31,11 +31,13 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.lightColorScheme
@@ -52,6 +54,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -67,11 +70,17 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val Forest = Color(0xFF163A36)
-private val Moss = Color(0xFF486B58)
-private val Paper = Color(0xFFFFFCF5)
-private val Sand = Color(0xFFF3B562)
-private val Ink = Color(0xFF222D2A)
+private val Pine = Color(0xFF18352E)
+private val Leaf = Color(0xFF3F6856)
+private val Canvas = Color(0xFFF7F3E9)
+private val Paper = Color(0xFFFFFDF8)
+private val Amber = Color(0xFFE9A94B)
+private val Ink = Color(0xFF202A27)
+private val Muted = Color(0xFF6C7772)
+private val Mist = Color(0xFFE4ECE5)
+private val Coral = Color(0xFFB94B3A)
+
+private enum class LibraryFilter { ALL, MARKDOWN, PDF }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,26 +95,31 @@ fun GreatcatNoteApp(viewModel: GreatcatViewModel = viewModel()) {
     }
 
     GreatcatTheme {
-        state.reader?.let { ReaderScreen(it, viewModel::closeReader) } ?: HomeScreen(
-            state = state,
-            onSync = viewModel::sync,
-            onRefresh = viewModel::refreshFiles,
-            onOpen = { openLauncher.launch(arrayOf("text/*", "application/pdf", "application/octet-stream")) },
-            onImport = { importLauncher.launch(arrayOf("text/*", "application/pdf", "application/octet-stream")) },
-            onSettings = { settingsVisible = true },
-            onFile = viewModel::openVaultFile,
-        )
+        when {
+            state.reader != null -> ReaderScreen(state.reader!!, viewModel::closeReader)
+            !state.hasToken -> ConnectScreen(state, viewModel::connect)
+            else -> HomeScreen(
+                state = state,
+                onSync = viewModel::sync,
+                onRefresh = viewModel::refreshFiles,
+                onOpen = { openLauncher.launch(arrayOf("text/*", "application/pdf", "application/octet-stream")) },
+                onImport = { importLauncher.launch(arrayOf("text/*", "application/pdf", "application/octet-stream")) },
+                onSettings = { settingsVisible = true },
+                onFile = viewModel::openVaultFile,
+            )
+        }
 
-        if (settingsVisible) {
-            SettingsSheet(
-                current = state.settings,
-                hasToken = state.hasToken,
+        if (settingsVisible && state.hasToken) {
+            TokenSheet(
                 onDismiss = { settingsVisible = false },
-                onSave = { settings, token ->
-                    viewModel.saveSettings(settings, token)
+                onSave = { token ->
+                    viewModel.saveToken(token)
                     settingsVisible = false
                 },
-                onClearToken = viewModel::clearToken,
+                onClearToken = {
+                    viewModel.clearToken()
+                    settingsVisible = false
+                },
             )
         }
     }
@@ -115,20 +129,100 @@ fun GreatcatNoteApp(viewModel: GreatcatViewModel = viewModel()) {
 private fun GreatcatTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = lightColorScheme(
-            primary = Forest,
+            primary = Pine,
             onPrimary = Color.White,
-            secondary = Moss,
-            tertiary = Sand,
-            background = Paper,
+            secondary = Leaf,
+            tertiary = Amber,
+            background = Canvas,
             surface = Paper,
             onSurface = Ink,
+            error = Coral,
         ),
         typography = MaterialTheme.typography.copy(
             displaySmall = MaterialTheme.typography.displaySmall.copy(fontFamily = FontFamily.Serif),
             headlineMedium = MaterialTheme.typography.headlineMedium.copy(fontFamily = FontFamily.Serif),
+            titleLarge = MaterialTheme.typography.titleLarge.copy(fontFamily = FontFamily.Serif),
         ),
         content = content,
     )
+}
+
+@Composable
+private fun ConnectScreen(state: AppState, onConnect: (String) -> Unit) {
+    var token by remember { mutableStateOf("") }
+    Scaffold(containerColor = Canvas) { padding ->
+        Column(
+            Modifier.fillMaxSize().padding(padding).background(
+                Brush.verticalGradient(listOf(Color(0xFFDCE7DE), Canvas, Paper)),
+            ).padding(horizontal = 24.dp, vertical = 28.dp),
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Surface(shape = RoundedCornerShape(22.dp), color = Pine, modifier = Modifier.size(68.dp)) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text("G", color = Amber, fontFamily = FontFamily.Serif, fontSize = 34.sp, fontWeight = FontWeight.Black)
+                }
+            }
+            Spacer(Modifier.height(24.dp))
+            Text("连接我的知识库", style = MaterialTheme.typography.displaySmall, color = Pine)
+            Spacer(Modifier.height(8.dp))
+            Text("仓库信息已经为你配置好，只需输入一次 GitHub 私有令牌。", color = Muted, lineHeight = 22.sp)
+            Spacer(Modifier.height(24.dp))
+            RepositoryIdentity()
+            Spacer(Modifier.height(18.dp))
+            OutlinedTextField(
+                value = token,
+                onValueChange = { token = it },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("GitHub 私有令牌") },
+                placeholder = { Text("github_pat_...") },
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                singleLine = true,
+                shape = RoundedCornerShape(16.dp),
+            )
+            state.error?.let {
+                Text(it, color = Coral, modifier = Modifier.padding(top = 10.dp), style = MaterialTheme.typography.bodySmall)
+            }
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = { onConnect(token) },
+                enabled = token.isNotBlank() && !state.busy,
+                modifier = Modifier.fillMaxWidth().height(54.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Pine),
+            ) {
+                if (state.busy) CircularProgressIndicator(Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                else Text("连接并同步", fontWeight = FontWeight.Bold)
+            }
+            Text(
+                "令牌使用 Android Keystore 加密，仅保存在这台设备。",
+                modifier = Modifier.fillMaxWidth().padding(top = 14.dp),
+                color = Muted,
+                fontSize = 12.sp,
+            )
+        }
+    }
+}
+
+@Composable
+private fun RepositoryIdentity() {
+    Card(
+        colors = CardDefaults.cardColors(containerColor = Paper),
+        shape = RoundedCornerShape(18.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(40.dp).background(Mist, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                Text("GC", color = Pine, fontWeight = FontWeight.Black, fontSize = 12.sp)
+            }
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text("czy1999 / Greatcat", fontWeight = FontWeight.Bold)
+                Text("私有仓库 · master", color = Muted, fontSize = 12.sp)
+            }
+            Text("专属", color = Leaf, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+    }
 }
 
 @Composable
@@ -142,186 +236,214 @@ private fun HomeScreen(
     onFile: (VaultFile) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
-    val visibleFiles = remember(state.files, query) {
-        state.files.filter { query.isBlank() || it.relativePath.contains(query, ignoreCase = true) }
+    var filter by remember { mutableStateOf(LibraryFilter.ALL) }
+    val visibleFiles = remember(state.files, query, filter) {
+        state.files.filter { file ->
+            (query.isBlank() || file.relativePath.contains(query, ignoreCase = true)) &&
+                (filter == LibraryFilter.ALL || filter.name == file.kind.name)
+        }
     }
 
-    Scaffold(containerColor = Paper) { padding ->
+    Scaffold(containerColor = Canvas) { padding ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(padding),
-            contentPadding = PaddingValues(bottom = 32.dp),
+            contentPadding = PaddingValues(bottom = 36.dp),
         ) {
             item {
-                Header(state.busy, onSync, onSettings)
-                QuickActions(onOpen, onImport, onRefresh)
-                StatusCard(state)
+                LibraryHeader(state, onSync, onSettings)
+                ActionRow(onOpen, onImport)
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                    label = { Text("搜索 Markdown 或 PDF") },
+                    placeholder = { Text("搜索标题或路径") },
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(16.dp),
                 )
                 Row(
-                    Modifier.fillMaxWidth().padding(horizontal = 22.dp, vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("我的资料", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text("${visibleFiles.size} 个文件", color = Moss)
+                    FilterChip(selected = filter == LibraryFilter.ALL, onClick = { filter = LibraryFilter.ALL }, label = { Text("全部") })
+                    FilterChip(selected = filter == LibraryFilter.MARKDOWN, onClick = { filter = LibraryFilter.MARKDOWN }, label = { Text("Markdown") })
+                    FilterChip(selected = filter == LibraryFilter.PDF, onClick = { filter = LibraryFilter.PDF }, label = { Text("PDF") })
+                }
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 22.dp, end = 12.dp, top = 12.dp, bottom = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("最近内容", modifier = Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("${visibleFiles.size} 项", color = Muted, fontSize = 12.sp)
+                    TextButton(onClick = onRefresh) { Text("刷新") }
                 }
             }
-            if (visibleFiles.isEmpty()) item { EmptyLibrary() }
-            else items(visibleFiles, key = { it.relativePath }) { file -> FileRow(file, onFile) }
+            if (visibleFiles.isEmpty()) item { EmptyLibrary(query.isNotBlank()) }
+            else items(visibleFiles, key = { it.relativePath }) { file -> FileCard(file, onFile) }
         }
     }
 }
 
 @Composable
-private fun Header(busy: Boolean, onSync: () -> Unit, onSettings: () -> Unit) {
+private fun LibraryHeader(state: AppState, onSync: () -> Unit, onSettings: () -> Unit) {
     Box(
         Modifier.fillMaxWidth().background(
-            Brush.linearGradient(listOf(Forest, Color(0xFF2E5A4A), Color(0xFF8B7040))),
-        ).padding(horizontal = 22.dp, vertical = 28.dp),
+            Brush.linearGradient(listOf(Pine, Color(0xFF2C5548), Color(0xFF6E643C))),
+        ).padding(horizontal = 22.dp, vertical = 24.dp),
     ) {
-        Column(Modifier.align(Alignment.CenterStart)) {
-            Text("GREATCAT", color = Sand, fontSize = 12.sp, letterSpacing = 3.sp, fontWeight = FontWeight.Bold)
-            Text("随身知识库", color = Color.White, style = MaterialTheme.typography.displaySmall)
-            Text("Markdown · PDF · Git", color = Color.White.copy(alpha = 0.75f))
-        }
-        Column(Modifier.align(Alignment.CenterEnd), horizontalAlignment = Alignment.End) {
-            Button(
-                onClick = onSync,
-                enabled = !busy,
-                colors = ButtonDefaults.buttonColors(containerColor = Sand, contentColor = Ink),
-            ) {
-                if (busy) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                else Text("立即同步", fontWeight = FontWeight.Bold)
+        Column(Modifier.fillMaxWidth()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("GREATCAT NOTE", color = Amber, fontSize = 11.sp, letterSpacing = 2.4.sp, fontWeight = FontWeight.Black)
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onSettings) { Text("账户", color = Color.White) }
             }
-            TextButton(onClick = onSettings) { Text("仓库设置", color = Color.White) }
+            Text("我的知识库", color = Color.White, style = MaterialTheme.typography.displaySmall)
+            Text("czy1999/Greatcat · master", color = Color.White.copy(alpha = 0.7f), fontSize = 13.sp)
+            Spacer(Modifier.height(18.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(color = Color.White.copy(alpha = 0.12f), shape = RoundedCornerShape(14.dp), modifier = Modifier.weight(1f)) {
+                    Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.size(8.dp).background(if (state.error == null) Amber else Color(0xFFFF8A75), CircleShape))
+                        Spacer(Modifier.width(9.dp))
+                        Text(
+                            state.error ?: state.status,
+                            color = Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            fontSize = 13.sp,
+                        )
+                    }
+                }
+                Spacer(Modifier.width(10.dp))
+                Button(
+                    onClick = onSync,
+                    enabled = !state.busy,
+                    colors = ButtonDefaults.buttonColors(containerColor = Amber, contentColor = Ink),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier.height(48.dp),
+                ) {
+                    if (state.busy) CircularProgressIndicator(Modifier.size(18.dp), color = Ink, strokeWidth = 2.dp)
+                    else Text("同步", fontWeight = FontWeight.Black)
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun QuickActions(onOpen: () -> Unit, onImport: () -> Unit, onRefresh: () -> Unit) {
+private fun ActionRow(onOpen: () -> Unit, onImport: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f)) { Text("打开文件") }
-        OutlinedButton(onClick = onImport, modifier = Modifier.weight(1f)) { Text("导入仓库") }
-        OutlinedButton(onClick = onRefresh, modifier = Modifier.weight(1f)) { Text("刷新") }
+        OutlinedButton(onClick = onOpen, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) {
+            Text("打开本机文件")
+        }
+        Button(onClick = onImport, modifier = Modifier.weight(1f), shape = RoundedCornerShape(14.dp)) {
+            Text("导入知识库")
+        }
     }
 }
 
 @Composable
-private fun StatusCard(state: AppState) {
-    val isError = state.error != null
+private fun FileCard(file: VaultFile, onFile: (VaultFile) -> Unit) {
+    val folder = file.relativePath.substringBeforeLast('/', "知识库")
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = if (isError) Color(0xFFFFE8E1) else Color(0xFFE8F0E8)),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 5.dp).clickable { onFile(file) },
         shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = Paper),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(10.dp).background(if (isError) Color(0xFFB33A2B) else Moss, CircleShape))
-            Spacer(Modifier.width(12.dp))
-            Text(state.error ?: state.status, style = MaterialTheme.typography.bodyMedium)
+        Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.size(46.dp).background(
+                    if (file.kind == FileKind.PDF) Color(0xFFFFE3DC) else Mist,
+                    RoundedCornerShape(14.dp),
+                ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(if (file.kind == FileKind.PDF) "PDF" else "MD", color = if (file.kind == FileKind.PDF) Coral else Pine, fontWeight = FontWeight.Black, fontSize = 11.sp)
+            }
+            Spacer(Modifier.width(13.dp))
+            Column(Modifier.weight(1f)) {
+                Text(file.file.nameWithoutExtension, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Spacer(Modifier.height(3.dp))
+                Text(folder, color = Muted, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(DateFormat.getDateInstance(DateFormat.SHORT).format(Date(file.modifiedAt)), color = Muted, fontSize = 11.sp)
+                Text("打开", color = Leaf, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
 
 @Composable
-private fun FileRow(file: VaultFile, onFile: (VaultFile) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clickable { onFile(file) }.padding(horizontal = 20.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Box(
-            Modifier.size(48.dp).background(
-                if (file.kind == FileKind.PDF) Color(0xFFFFE0D8) else Color(0xFFDDEBE0),
-                RoundedCornerShape(14.dp),
-            ),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(if (file.kind == FileKind.PDF) "PDF" else "MD", fontWeight = FontWeight.Black, fontSize = 12.sp)
-        }
-        Spacer(Modifier.width(14.dp))
-        Column(Modifier.weight(1f)) {
-            Text(file.file.nameWithoutExtension, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            Text(file.relativePath, color = Moss, fontSize = 12.sp, maxLines = 1)
-        }
-        Text(DateFormat.getDateInstance(DateFormat.SHORT).format(Date(file.modifiedAt)), color = Color.Gray, fontSize = 11.sp)
-    }
-}
-
-@Composable
-private fun EmptyLibrary() {
-    Column(Modifier.fillMaxWidth().padding(48.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Text("还没有资料", style = MaterialTheme.typography.headlineMedium)
+private fun EmptyLibrary(searching: Boolean) {
+    Column(Modifier.fillMaxWidth().padding(52.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(if (searching) "没有匹配内容" else "知识库还是空的", style = MaterialTheme.typography.headlineMedium, color = Pine)
         Spacer(Modifier.height(8.dp))
-        Text("配置 Git 仓库并同步，或直接打开手机里的文件。", color = Moss)
+        Text(if (searching) "换个关键词试试。" else "点击同步，从 GitHub 获取 Markdown 和 PDF。", color = Muted)
     }
 }
 
 @Composable
 private fun ReaderScreen(target: ReaderTarget, onBack: () -> Unit) {
-    Column(Modifier.fillMaxSize().background(Paper)) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(onClick = onBack) { Text("返回") }
-            Text(target.name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Bold, maxLines = 1)
+    Scaffold(containerColor = Paper) { padding ->
+        Column(Modifier.fillMaxSize().padding(padding)) {
+            Row(
+                Modifier.fillMaxWidth().background(Paper).padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TextButton(onClick = onBack) { Text("返回") }
+                Column(Modifier.weight(1f)) {
+                    Text(target.name.substringBeforeLast('.'), fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(if (target.kind == FileKind.PDF) "PDF 阅读" else "Markdown 阅读", color = Muted, fontSize = 11.sp)
+                }
+                Surface(color = if (target.kind == FileKind.PDF) Color(0xFFFFE3DC) else Mist, shape = RoundedCornerShape(10.dp)) {
+                    Text(if (target.kind == FileKind.PDF) "PDF" else "MD", Modifier.padding(horizontal = 10.dp, vertical = 6.dp), fontSize = 11.sp, fontWeight = FontWeight.Black)
+                }
+            }
+            Reader(target, Modifier.weight(1f))
         }
-        Reader(target, Modifier.weight(1f))
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsSheet(
-    current: RepoSettings,
-    hasToken: Boolean,
+private fun TokenSheet(
     onDismiss: () -> Unit,
-    onSave: (RepoSettings, String) -> Unit,
+    onSave: (String) -> Unit,
     onClearToken: () -> Unit,
 ) {
-    var remote by remember(current) { mutableStateOf(current.remoteUrl) }
-    var branch by remember(current) { mutableStateOf(current.branch) }
-    var username by remember(current) { mutableStateOf(current.username) }
     var token by remember { mutableStateOf("") }
-
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Paper) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 22.dp).padding(bottom = 32.dp)) {
-            Text("Git 仓库", style = MaterialTheme.typography.headlineMedium)
-            Text("使用 HTTPS 地址。令牌由 Android Keystore 加密保存在本机。", color = Moss)
+            Text("专属仓库", style = MaterialTheme.typography.headlineMedium)
+            Spacer(Modifier.height(6.dp))
+            RepositoryIdentity()
             Spacer(Modifier.height(16.dp))
-            OutlinedTextField(remote, { remote = it }, Modifier.fillMaxWidth(), label = { Text("仓库地址") }, singleLine = true)
-            Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(branch, { branch = it }, Modifier.weight(1f), label = { Text("分支") }, singleLine = true)
-                OutlinedTextField(username, { username = it }, Modifier.weight(1f), label = { Text("用户名") }, singleLine = true)
-            }
+            Text("更新私有令牌", fontWeight = FontWeight.Bold)
+            Text("仓库、分支和用户名已固定，无需重复配置。", color = Muted, fontSize = 13.sp)
             Spacer(Modifier.height(10.dp))
             OutlinedTextField(
                 value = token,
                 onValueChange = { token = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text(if (hasToken) "新令牌（留空则保留）" else "访问令牌") },
+                label = { Text("新令牌") },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 singleLine = true,
+                shape = RoundedCornerShape(16.dp),
             )
-            Spacer(Modifier.height(18.dp))
+            Spacer(Modifier.height(14.dp))
             Button(
-                onClick = { onSave(RepoSettings(remote, branch, username), token) },
-                modifier = Modifier.fillMaxWidth(),
-            ) { Text("保存设置") }
-            if (hasToken) {
-                TextButton(onClick = onClearToken, modifier = Modifier.align(Alignment.CenterHorizontally)) {
-                    Text("清除本机令牌", color = MaterialTheme.colorScheme.error)
-                }
+                onClick = { onSave(token) },
+                enabled = token.isNotBlank(),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+            ) { Text("保存新令牌") }
+            TextButton(onClick = onClearToken, modifier = Modifier.align(Alignment.CenterHorizontally)) {
+                Text("退出并清除本机令牌", color = Coral)
             }
         }
     }
