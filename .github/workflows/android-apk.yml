@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@f40ffc3d4cce1bf1c334c5c9f26e0456d4a4063b
+      - uses: pnpm/action-setup@v4
         with:
           version: 10
 
@@ -40,7 +40,7 @@ jobs:
 
       - uses: android-actions/setup-android@v3
 
-      - uses: dtolnay/rust-toolchain@29eefb281be0065217eab7100d5a2a549b39acb2
+      - uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
           targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
