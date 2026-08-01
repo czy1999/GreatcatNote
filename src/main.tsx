@@ -82,6 +82,15 @@ const RootApp = lazy(async () => {
   return appModule
 })
 
+const MobileApp = lazy(async () => {
+  const appModule = await import('./MobileApp.tsx')
+  return appModule
+})
+
+function shouldUseMobileApp(): boolean {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+}
+
 function dataTransferHasFiles(dataTransfer: DataTransfer | null): boolean {
   if (!dataTransfer) return false
   if (dataTransfer.files.length > 0) return true
@@ -268,9 +277,9 @@ createRoot(getRequiredRootElement(), {
 }).render(
   <StrictMode>
     <TooltipProvider>
-      <LinuxTitlebar />
+      {!shouldUseMobileApp() && <LinuxTitlebar />}
       <Suspense fallback={<StartupShellFallback />}>
-        <RootApp />
+        {shouldUseMobileApp() ? <MobileApp /> : <RootApp />}
         <FrontendReadyMarker />
       </Suspense>
     </TooltipProvider>

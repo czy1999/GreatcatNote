@@ -21,7 +21,11 @@ fn initialize_empty_vault(vault_dir: &Path, vault_path: &str) -> Result<(), Stri
     std::fs::create_dir_all(vault_dir)
         .map_err(|e| format!("Failed to create vault directory: {}", e))?;
 
+    #[cfg(desktop)]
     git::init_repo(vault_path)?;
+    #[cfg(not(desktop))]
+    let _ = vault_path;
+
     vault::seed_config_files(vault_path);
     Ok(())
 }
@@ -87,6 +91,7 @@ pub fn repair_vault(vault_path: String) -> Result<String, String> {
     let vault_path = expand_tilde(&vault_path);
     vault::migrate_is_a_to_type(&vault_path)?;
     vault::repair_config_files(&vault_path)?;
+    #[cfg(desktop)]
     git::ensure_gitignore(std::path::Path::new(vault_path.as_ref()))?;
     Ok("Vault repaired".to_string())
 }

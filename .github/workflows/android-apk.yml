@@ -1,0 +1,61 @@
+name: GreatcatNote Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "android-v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: greatcatnote-android-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  NODE_OPTIONS: --max-old-space-size=4096
+
+jobs:
+  apk:
+    name: Build APK
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@f40ffc3d4cce1bf1c334c5c9f26e0456d4a4063b
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: dtolnay/rust-toolchain@29eefb281be0065217eab7100d5a2a549b39acb2
+        with:
+          toolchain: stable
+          targets: aarch64-linux-android,armv7-linux-androideabi,i686-linux-android,x86_64-linux-android
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Initialize Android project
+        run: pnpm tauri android init
+
+      - name: Build debug APK
+        run: pnpm tauri android build -- --apk --debug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GreatcatNote-Android-debug-apk
+          path: src-tauri/gen/android/app/build/outputs/**/*.apk
+          if-no-files-found: error

@@ -340,10 +340,15 @@ pub fn get_file_history(
 #[cfg(mobile)]
 #[tauri::command]
 pub fn get_modified_files(
-    _vault_path: VaultPathArg,
-    _include_stats: Option<bool>,
+    vault_path: VaultPathArg,
+    include_stats: Option<bool>,
 ) -> Result<Vec<ModifiedFile>, String> {
-    Ok(vec![])
+    let vault_path = expand_tilde(&vault_path);
+    if include_stats.unwrap_or(false) {
+        crate::git::get_modified_files_with_stats(&vault_path)
+    } else {
+        crate::git::get_modified_files(&vault_path)
+    }
 }
 
 #[cfg(mobile)]
@@ -374,8 +379,9 @@ pub fn get_vault_pulse(
 
 #[cfg(mobile)]
 #[tauri::command]
-pub fn git_commit(_vault_path: VaultPathArg, _message: CommitMessageArg) -> Result<String, String> {
-    Err("Git commit is not available on mobile".into())
+pub fn git_commit(vault_path: VaultPathArg, message: CommitMessageArg) -> Result<String, String> {
+    let vault_path = expand_tilde(&vault_path);
+    crate::git::git_commit(&vault_path, &message)
 }
 
 #[cfg(mobile)]
@@ -392,8 +398,9 @@ pub fn get_last_commit_info(_vault_path: VaultPathArg) -> Result<Option<LastComm
 
 #[cfg(mobile)]
 #[tauri::command]
-pub async fn git_pull(_vault_path: VaultPathArg) -> Result<GitPullResult, String> {
-    Err("Git pull is not available on mobile".into())
+pub async fn git_pull(vault_path: VaultPathArg) -> Result<GitPullResult, String> {
+    let vault_path = expand_tilde(&vault_path);
+    crate::git::git_pull(&vault_path)
 }
 
 #[cfg(mobile)]
@@ -426,21 +433,16 @@ pub fn git_commit_conflict_resolution(_vault_path: VaultPathArg) -> Result<Strin
 
 #[cfg(mobile)]
 #[tauri::command]
-pub async fn git_push(_vault_path: VaultPathArg) -> Result<GitPushResult, String> {
-    Err("Git push is not available on mobile".into())
+pub async fn git_push(vault_path: VaultPathArg) -> Result<GitPushResult, String> {
+    let vault_path = expand_tilde(&vault_path);
+    crate::git::git_push(&vault_path)
 }
 
 #[cfg(mobile)]
 #[tauri::command]
-pub async fn git_remote_status(_vault_path: VaultPathArg) -> Result<GitRemoteStatus, String> {
-    Ok(GitRemoteStatus {
-        branch: String::new(),
-        has_remote: false,
-        has_upstream: false,
-        upstream: None,
-        ahead: 0,
-        behind: 0,
-    })
+pub async fn git_remote_status(vault_path: VaultPathArg) -> Result<GitRemoteStatus, String> {
+    let vault_path = expand_tilde(&vault_path);
+    crate::git::git_remote_status(&vault_path)
 }
 
 #[cfg(mobile)]
@@ -463,20 +465,16 @@ pub fn git_discard_file(
 
 #[cfg(mobile)]
 #[tauri::command]
-pub fn is_git_repo(_vault_path: VaultPathArg) -> bool {
-    false
+pub fn is_git_repo(vault_path: VaultPathArg) -> bool {
+    let vault_path = expand_tilde(&vault_path);
+    crate::git::is_inside_work_tree(std::path::Path::new(vault_path.as_ref()))
 }
 
 #[cfg(mobile)]
 #[tauri::command]
 pub fn git_workspace_info(vault_path: VaultPathArg) -> GitWorkspaceInfo {
-    GitWorkspaceInfo {
-        vault_root: vault_path,
-        git_root: None,
-        vault_pathspec: None,
-        git_root_relation: "none".to_string(),
-        resolution_failure: None,
-    }
+    let vault_path = expand_tilde(&vault_path);
+    crate::git::git_workspace_info(std::path::Path::new(vault_path.as_ref()))
 }
 
 #[cfg(mobile)]
@@ -501,8 +499,9 @@ pub async fn test_git_provider(
 
 #[cfg(mobile)]
 #[tauri::command]
-pub fn init_git_repo(_vault_path: VaultPathArg) -> Result<(), String> {
-    Err("Git init is not available on mobile".into())
+pub fn init_git_repo(vault_path: VaultPathArg) -> Result<(), String> {
+    let vault_path = expand_tilde(&vault_path);
+    crate::git::init_repo(std::path::Path::new(vault_path.as_ref()))
 }
 
 #[cfg(test)]
