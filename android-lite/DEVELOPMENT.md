@@ -110,21 +110,18 @@ PDF：
 
 ## 8. 令牌处理
 
-令牌只在首次连接或用户主动更新时输入。`SecureSettings` 使用 Android Keystore 中的 AES-GCM 密钥加密，SharedPreferences 只保存 `IV:ciphertext`。
+令牌只在首次连接或用户主动更新时输入。`SecureSettings` 将令牌放在 Android 应用私有 SharedPreferences 中，Manifest 已设置 `allowBackup=false`，不会随系统备份导出。
 
 实现约束：
 
-- 加密时由 `SecureRandom` 和 Keystore 生成新的随机 IV。
-- 解密时必须使用 `GCMParameterSpec(128, iv)`；使用 `IvParameterSpec` 会在部分 Android 设备上报 `only GCMParameterSpec supported`。
 - 令牌不得写入 Git URL、日志、README、崩溃信息或仓库。
-
-这部分保持平台原生最小实现，不增加登录服务器、OAuth 回调或多账号抽象。
+- 更新存储格式时更换 preferences 文件名，让用户重新输入，不编写复杂迁移代码。
+- 不增加登录服务器、OAuth 回调或多账号抽象。
 
 ## 9. 常见故障定位
 
 | 现象 | 位置 | 原因与处理 |
 | --- | --- | --- |
-| `only GCMParameterSpec supported` | `SecureSettings.decrypt()` | AES-GCM 参数类型错误；保持 `GCMParameterSpec(128, iv)` |
 | 401/认证失败 | `GitSync.credentials()` | 令牌失效或缺少 `Contents: Read and write`，更新令牌 |
 | 找不到 `main` | `RepoSettings` | Greatcat 默认分支是 `master`，不要改成 `main` |
 | 本地目录已有文件，无法克隆 | `GitSync.sync()` | 首次同步前已经导入文件；清理应用数据后先同步再导入 |
@@ -150,8 +147,8 @@ Excalidraw：先做只读 WebView 渲染并把 `.excalidraw` 加入 `FileKind`�
 每次可安装版本修改 `app/build.gradle.kts`：
 
 ```kotlin
-versionCode = 3
-versionName = "0.2.0"
+versionCode = 4
+versionName = "0.2.1"
 ```
 
 `versionCode` 必须递增。推送后查看 GitHub Actions 的 `GreatcatNote Android APK`，成功后下载 `GreatcatNote-Mobile-APK` artifact。

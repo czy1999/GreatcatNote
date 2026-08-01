@@ -17,7 +17,7 @@ GreatcatNote Mobile 是 `czy1999/Greatcat` 的个人 Android 客户端。它只�
 | 分支 | `master` |
 | 用户名 | `czy1999` |
 
-令牌使用 Android Keystore 加密后保存在应用私有目录，不会写入仓库或 Git 地址。
+令牌保存在 Android 应用私有沙箱中，应用已关闭系统备份；令牌不会写入仓库、Git 地址或日志。
 
 ## 当前能力
 
